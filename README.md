@@ -73,8 +73,8 @@ Using Redis for caching in the Country Comparison API significantly improves per
 
 1. **Clone the repository**:
     ```sh
-    git clone <repository-url>
-    cd <repository-directory>
+    git clone https://github.com/palgunatm66/CountryComparisonUsingexpressandRedis.git
+    cd CountryComparisonUsingexpressandRedis
     ```
 
 2. **Install dependencies**:
@@ -92,7 +92,18 @@ Using Redis for caching in the Country Comparison API significantly improves per
         docker-compose up
         ```
 
-4. **Access the API**:
+4. **Pull the Docker image and run the application**:
+
+    - Pull the Docker image:
+        ```sh
+        docker pull palgunatm66/country-comparison-bonus:1.0.0
+        ```
+        
+    - Run the application with Docker Compose:
+        ```sh
+        docker-compose up
+        ```
+5. **Access the API**:
     - Countries: `GET /api/countries`
     - Population: `GET /api/population/:country/:sortorder?/:date?`
 
