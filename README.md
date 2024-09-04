@@ -99,7 +99,28 @@ Using Redis for caching in the Country Comparison API significantly improves per
         docker pull palgunatm66/country-comparison-bonus:1.0.0
         ```
         
-    - Run the application with Docker Compose:
+    - Run the application with Docker Compose using the image pulled creating this docker-compose.yml:
+     ```
+      version: '3.8'
+
+services:
+  app:
+    image: palgunatm66/country-comparison-bonus:1.0.0
+    ports:
+      - "3000:3000"
+    environment:
+      - USE_REDIS=true
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7.4.0
+    ports:
+      - "6379:6379"
+      ```
+      - Run the application with Docker Compose up:
         ```sh
         docker-compose up
         ```
