@@ -91,7 +91,6 @@ Using Redis for caching in the Country Comparison API significantly improves per
         
     - Create a `docker-compose.yml` file with the following content:
         ```yaml
-        version: '3.8'
         services:
           app:
             image: palgunatm66/country-comparison-bonus:1.0.0
