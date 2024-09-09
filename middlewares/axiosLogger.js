@@ -1,7 +1,18 @@
 const axios = require('axios');
+const CircuitBreaker = require('opossum');
 
 // Create an Axios instance
 const axiosInstance = axios.create();
+
+// Define the circuit breaker options
+const options = {
+    timeout: 3000, // If the request takes longer than 3 seconds, trigger a failure
+    errorThresholdPercentage: 50, // When 50% of requests fail, open the circuit
+    resetTimeout: 30000 // After 30 seconds, try again.
+};
+
+// Create a circuit breaker for the Axios instance
+const breaker = new CircuitBreaker(axiosInstance.request, options);
 
 // Add a request interceptor
 axiosInstance.interceptors.request.use(request => {
@@ -32,4 +43,4 @@ axiosInstance.interceptors.response.use(response => {
     return Promise.reject(error);
 });
 
-module.exports = axiosInstance;
+module.exports = { axiosInstance, breaker };

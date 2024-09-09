@@ -10,7 +10,6 @@ The Country Comparison API provides endpoints to fetch country and population da
 
 The `getCountries` function fetches a list of countries from an external API. It first checks if the data is available in the Redis cache. If not, it fetches the data from the API and stores it in the cache for future requests.
 
-
 ### 2. Fetching Population Data
 
 The `getPopulation` function fetches population data for specified countries on a given date. It supports sorting the results in ascending or descending order. Similar to `getCountries`, it uses Redis for caching. Additionally, the implementation includes automatically adding the country of the requested API URL and the date parameter to the request, leveraging Redis caching for faster response times and fewer external API requests.
@@ -19,34 +18,25 @@ The `getPopulation` function fetches population data for specified countries on 
 
 Redis is used to cache the responses from the external APIs to improve performance. The Redis client is initialized based on the environment variable `USE_REDIS`.
 
-
 ### 4. Logging Middleware
 
 A custom logging middleware logs details about incoming requests, including method, URL, IP address, headers, and body. It also fetches the country information based on the IP address using the `ipinfo` package.
-
 
 ### 5. Axios Interceptors
 
 Axios interceptors are used to log details about external requests and responses, including method, URL, headers, and data.
 
-
 ### 6. Error Handling Middleware
 
 A custom error handling middleware formats error responses and sets appropriate HTTP status codes.
-
 
 ### 7. Docker and Docker Compose
 
 The application is containerized using Docker. Docker Compose is used to manage the application and Redis services.
 
-
 ### 8. Environment Configuration
 
 Environment variables are used to configure the application, including whether to use Redis and the Redis host and port.
-
-
-
-
 
 ## Speed Comparison: Caching vs. Non-Caching
 
@@ -99,11 +89,34 @@ Using Redis for caching in the Country Comparison API significantly improves per
         docker pull palgunatm66/country-comparison-bonus:1.0.0
         ```
         
+    - Create a `docker-compose.yml` file with the following content:
+        ```yaml
+        version: '3.8'
+        services:
+          app:
+            image: palgunatm66/country-comparison-bonus:1.0.0
+            ports:
+              - "3000:3000"
+            environment:
+              - USE_REDIS=true
+              - REDIS_HOST=redis
+              - REDIS_PORT=6379
+            depends_on:
+              - redis
+
+          redis:
+            image: redis:7.4.0
+            ports:
+              - "6379:6379"
+        ```
+
     - Run the application with Docker Compose:
         ```sh
         docker-compose up
         ```
+
 5. **Access the API**:
     - Countries: `GET /api/countries`
     - Population: `GET /api/population/:country/:sortorder?/:date?`
+    - Top Requested Countries: `GET /api/top-requested-countries`
 

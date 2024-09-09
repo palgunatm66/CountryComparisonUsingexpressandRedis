@@ -1,6 +1,7 @@
 'use strict';
 
-const axiosInstance = require('../middlewares/axiosLogger');
+const { axiosInstance, breaker } = require('../middlewares/axiosLogger');
+const { incrementCount, getTopRequestedCountries } = require('../models/countryRequestCounts');
 
 const getCountries = async (req, res, next) => {
     try {
@@ -16,16 +17,32 @@ const getCountries = async (req, res, next) => {
             }
 
             console.log('Cache miss, fetching from API');
-            const response = await axiosInstance.get('https://d6wn6bmjj722w.population.io:443/1.0/countries');
-            const countries = response.data.countries;
+            try {
+                const response = await breaker.fire({
+                    method: 'get',
+                    url: 'https://d6wn6bmjj722w.population.io:443/1.0/countries'
+                });
+                const countries = response.data.countries;
 
-            console.log('Fetched countries:', countries);
-            await redisClient.setEx(cacheKey, 3600, JSON.stringify(countries)); // Cache for 1 hour
+                console.log('Fetched countries:', countries);
+                await redisClient.setEx(cacheKey, 3600, JSON.stringify(countries)); // Cache for 1 hour
 
-            res.json(countries);
+                res.json(countries);
+            } catch (apiError) {
+                console.error('Error fetching from API, returning fallback data:', apiError);
+                const fallbackData = await redisClient.get(cacheKey);
+                if (fallbackData) {
+                    return res.json(JSON.parse(fallbackData));
+                } else {
+                    throw new Error('Failed to fetch countries from the API and no fallback data available.');
+                }
+            }
         } else {
             console.log('Redis client not available, fetching from API');
-            const response = await axiosInstance.get('https://d6wn6bmjj722w.population.io:443/1.0/countries');
+            const response = await breaker.fire({
+                method: 'get',
+                url: 'https://d6wn6bmjj722w.population.io:443/1.0/countries'
+            });
             res.json(response.data.countries);
         }
     } catch (error) {
@@ -83,7 +100,10 @@ const getPopulation = async (req, res, next) => {
             console.log('Cache miss, fetching from API');
             const populationPromises = countries.map(async (country) => {
                 const url = `https://d6wn6bmjj722w.population.io:443/1.0/population/${country}/${targetDate}`;
-                const response = await axiosInstance.get(url);
+                const response = await breaker.fire({
+                    method: 'get',
+                    url: url
+                });
                 return { country, date: targetDate, population: response.data.total_population.population };
             });
 
@@ -98,12 +118,20 @@ const getPopulation = async (req, res, next) => {
             console.log('Fetched populations:', populations);
             await redisClient.setEx(cacheKey, 3600, JSON.stringify(populations)); // Cache for 1 hour
 
+            // Log the country requests
+            for (const country of countries) {
+                incrementCount(country);
+            }
+
             res.json(populations);
         } else {
             console.log('Redis client not available, fetching from API');
             const populationPromises = countries.map(async (country) => {
                 const url = `https://d6wn6bmjj722w.population.io:443/1.0/population/${country}/${targetDate}`;
-                const response = await axiosInstance.get(url);
+                const response = await breaker.fire({
+                    method: 'get',
+                    url: url
+                });
                 return { country, date: targetDate, population: response.data.total_population.population };
             });
 
@@ -116,6 +144,12 @@ const getPopulation = async (req, res, next) => {
             }
 
             console.log('Fetched populations:', populations);
+
+            // Log the country requests
+            for (const country of countries) {
+                incrementCount(country);
+            }
+
             res.json(populations);
         }
     } catch (error) {
@@ -136,7 +170,20 @@ const getPopulation = async (req, res, next) => {
     }
 };
 
+const getTopRequestedCountriesHandler = async (req, res, next) => {
+    try {
+        const topCountries = getTopRequestedCountries();
+        res.json(topCountries);
+    } catch (error) {
+        console.error('Error in getTopRequestedCountries:', error);
+        error.message = 'Failed to fetch top requested countries.';
+        error.status = 500;
+        next(error);
+    }
+};
+
 module.exports = {
     getCountries,
-    getPopulation
+    getPopulation,
+    getTopRequestedCountries: getTopRequestedCountriesHandler
 };
