@@ -115,6 +115,7 @@ Using Redis for caching in the Country Comparison API significantly improves per
         docker-compose up
         ```
 
+
 5. **Access the API**:
     - Countries: `GET /api/countries`
     - Population: `GET /api/population/:country/:sortorder?/:date?`
